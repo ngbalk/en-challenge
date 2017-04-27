@@ -56,10 +56,9 @@ class DataCleaner():
 		# if invalid date format, add extra field to entity with 'start_date_description'
 		if(not normalizedDate):
 			entity['start_date_description'] = entity['start_date']
-			entity['start_date'] = None
 		else:
-			entity['start_date'] = normalizedDate
 			entity['start_date_description'] = None
+		entity['start_date'] = normalizedDate
 
 		return entity
 
