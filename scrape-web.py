@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 from urlparse import urljoin
-import urllib2, re, json
+import urllib2, re, json, time
 
 
 class WebScraper():
@@ -10,6 +10,9 @@ class WebScraper():
     urlsVisited = {}
     urlQueue = []
     failed = []
+
+    # properties
+    timeoutVal = 15 # in seconds
 
     def __init__(self, url="http://data-interview.enigmalabs.org/companies/"):
         self.rootUrl = url
@@ -23,6 +26,9 @@ class WebScraper():
         self.__parseAndAddUrls(self.rootUrl)
 
         while self.urlQueue:
+
+            # space out request to avoid overloading server
+            time.sleep(.1)
 
             # pop new url from queue
             urlToVisit = self.urlQueue.pop(0)
@@ -88,7 +94,7 @@ class WebScraper():
         company = {}
 
         # parse table into dictionary
-        for row in companySoup.findAll('tr'):
+        for row in companySoup.find_all('tr'):
             aux = row.findAll('td')
             company[aux[0].string] = aux[1].string
 
@@ -101,12 +107,17 @@ class WebScraper():
 
     def __getSoup(self, url):
         try:
-            doc = urllib2.urlopen(url, timeout=10).read()
+            doc = urllib2.urlopen(url, timeout=self.timeoutVal).read()
             soup = BeautifulSoup(doc, 'html.parser')
             return soup
         except:
-            self.failed.append(url)
-            print "failed on: " + url
+            # if its our first failure on this url, add back to queue and try again
+            if url not in self.failed:
+                print "retrying on: " + url
+                self.urlQueue.append(url)
+            else:
+                self.failed.append(url)
+                print "failed on: " + url
             return None
 
     def __writeJson(self, data, fileName):
